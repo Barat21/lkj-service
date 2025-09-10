@@ -1,9 +1,6 @@
 package com.example.vanrental.model;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalDate;
@@ -18,8 +15,8 @@ import java.time.LocalDate;
 public class VanRentalTrip {
 
     @Id
-    @Column(length = 36)
-    private String id;
+    @GeneratedValue(strategy = GenerationType.IDENTITY) // Auto-increment ID
+    private Long id;
 
     private String vanNumber;
     private LocalDate date;

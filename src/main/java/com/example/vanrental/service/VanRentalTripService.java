@@ -25,10 +25,6 @@ public class VanRentalTripService {
     }
 
     public VanRentalTrip createTrip(VanRentalTrip trip) {
-        // assign UUID id
-        if (trip.getId() == null || trip.getId().isBlank()) {
-            trip.setId(UUID.randomUUID().toString());
-        }
         recalc(trip);
         return repository.save(trip);
     }
