@@ -8,7 +8,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
 
 @Service
 @Transactional
@@ -71,6 +70,6 @@ public class VanRentalTripService {
 
     private void recalc(VanRentalTrip trip) {
         trip.setNoOfBags((int) Math.floor((double) trip.getWayment() / 78));
-        trip.setTotalRent(Math.round(trip.getNoOfBags() * trip.getRent()));
+        trip.setTotalRent(Math.round((trip.getNoOfBags() * trip.getRent()) + trip.getMiscSpending()));
     }
 }
