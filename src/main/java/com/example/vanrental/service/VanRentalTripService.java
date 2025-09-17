@@ -6,6 +6,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 
@@ -20,8 +21,15 @@ public class VanRentalTripService {
     }
 
     public List<VanRentalTrip> getAllTrips() {
-        return repository.findAll();
-    }
+        List<VanRentalTrip> trips = repository.findAll();
+
+        // Sort ascending by date
+        trips.sort(Comparator.comparing(VanRentalTrip::getDate));
+
+        // For descending order:
+        // trips.sort(Comparator.comparing(VanRentalTrip::getDate).reversed());
+
+        return trips;    }
 
     public VanRentalTrip createTrip(VanRentalTrip trip) {
         recalc(trip);
@@ -71,5 +79,6 @@ public class VanRentalTripService {
     private void recalc(VanRentalTrip trip) {
         trip.setNoOfBags((int) Math.floor((double) trip.getWayment() / 78));
         trip.setTotalRent(Math.round((trip.getNoOfBags() * trip.getRent()) + trip.getMiscSpending()));
+        trip.setVanNumber(trip.getVanNumber().toUpperCase());
     }
 }
