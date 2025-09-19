@@ -2,6 +2,8 @@ package com.example.vanrental.service;
 
 import com.example.vanrental.model.VanRentalTrip;
 import com.example.vanrental.repository.VanRentalTripRepository;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,7 +22,9 @@ public class VanRentalTripService {
         this.repository = repository;
     }
 
+    @Cacheable(value = "trips")
     public List<VanRentalTrip> getAllTrips() {
+        System.out.println("Hitting the DB");
         List<VanRentalTrip> trips = repository.findAll();
 
         // Sort ascending by date
@@ -29,13 +33,16 @@ public class VanRentalTripService {
         // For descending order:
         // trips.sort(Comparator.comparing(VanRentalTrip::getDate).reversed());
 
-        return trips;    }
+        return trips;
+    }
 
+    @CacheEvict(value = "trips", allEntries = true)
     public VanRentalTrip createTrip(VanRentalTrip trip) {
         recalc(trip);
         return repository.save(trip);
     }
 
+    @CacheEvict(value = "trips", allEntries = true)
     public VanRentalTrip updateTrip(String id, VanRentalTrip updates) {
         Optional<VanRentalTrip> opt = repository.findById(id);
         if (opt.isEmpty()) {
@@ -53,13 +60,14 @@ public class VanRentalTripService {
         return repository.save(existing);
     }
 
+    @CacheEvict(value = "trips", allEntries = true)
     public void deleteTrip(String id) {
         repository.deleteById(id);
     }
 
     public List<VanRentalTrip> searchTrips(String query) {
         // Simple search against vanNumber, pickupLocation, dropoffLocation
-        return repository.findAll().stream()
+        List<VanRentalTrip> trips = repository.findAll().stream()
                 .filter(t -> {
                     String lower = query.toLowerCase();
                     return (t.getVanNumber() != null && t.getVanNumber().toLowerCase().contains(lower))
@@ -67,13 +75,17 @@ public class VanRentalTripService {
                             || (t.getDropoffLocation() != null && t.getDropoffLocation().toLowerCase().contains(lower));
                 })
                 .toList();
+        trips.sort(Comparator.comparing(VanRentalTrip::getDate));
+        return trips;
     }
 
     public List<VanRentalTrip> searchByDateAndVan(LocalDate start, LocalDate end, String vanNumber) {
         if (vanNumber == null || vanNumber.isBlank()) {
             return repository.findByDateBetween(start, end);
         }
-        return repository.findByDateBetweenAndVanNumberContainingIgnoreCase(start, end, vanNumber);
+        List<VanRentalTrip> trips = repository.findByDateBetweenAndVanNumberContainingIgnoreCase(start, end, vanNumber);
+        trips.sort(Comparator.comparing(VanRentalTrip::getDate));
+        return trips;
     }
 
     private void recalc(VanRentalTrip trip) {
