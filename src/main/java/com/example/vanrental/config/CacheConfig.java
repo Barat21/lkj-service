@@ -16,7 +16,7 @@ public class CacheConfig {
 
     @Bean
     public CaffeineCacheManager cacheManager() {
-        CaffeineCacheManager cacheManager = new CaffeineCacheManager("trips");
+        CaffeineCacheManager cacheManager = new CaffeineCacheManager("trips","vanNumbers","rates");
         cacheManager.setCaffeine(
                 Caffeine.newBuilder()
                         .expireAfterWrite(1, TimeUnit.DAYS) // cache TTL

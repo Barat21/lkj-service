@@ -2,6 +2,7 @@ package com.example.vanrental.controller;
 
 import com.example.vanrental.model.VanRentalTrip;
 import com.example.vanrental.service.VanRentalTripService;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -22,6 +23,11 @@ public class VanRentalTripController {
     @GetMapping
     public List<VanRentalTrip> getAllTrips() {
         return service.getAllTrips();
+    }
+
+    @GetMapping("/getVanNumbers")
+    public List<String> getVanNumberSuggestion() {
+        return service.getVanNumbers();
     }
 
     @PostMapping
@@ -57,5 +63,15 @@ public class VanRentalTripController {
                 LocalDate.parse(endDate),
                 vanNumber
         );
+    }
+    @Cacheable(
+            value = "rates",  // cache name
+            key = "T(org.springframework.util.StringUtils).trimAllWhitespace(#pickup) + '_' + T(org.springframework.util.StringUtils).trimAllWhitespace(#dropOff)"
+    )
+    @GetMapping("/calculateRate")
+    public ResponseEntity<Integer> getRate(@RequestParam String pickup,
+                                           @RequestParam String dropOff) {
+        Integer rate = service.calculateRate(pickup, dropOff);
+        return ResponseEntity.ok(rate);
     }
 }

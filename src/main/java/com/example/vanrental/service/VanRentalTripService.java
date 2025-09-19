@@ -36,13 +36,13 @@ public class VanRentalTripService {
         return trips;
     }
 
-    @CacheEvict(value = "trips", allEntries = true)
+    @CacheEvict(value = {"trips","vanNumbers"}, allEntries = true)
     public VanRentalTrip createTrip(VanRentalTrip trip) {
         recalc(trip);
         return repository.save(trip);
     }
 
-    @CacheEvict(value = "trips", allEntries = true)
+    @CacheEvict(value = {"trips","vanNumbers"}, allEntries = true)
     public VanRentalTrip updateTrip(String id, VanRentalTrip updates) {
         Optional<VanRentalTrip> opt = repository.findById(id);
         if (opt.isEmpty()) {
@@ -60,7 +60,7 @@ public class VanRentalTripService {
         return repository.save(existing);
     }
 
-    @CacheEvict(value = "trips", allEntries = true)
+    @CacheEvict(value = {"trips","vanNumbers"}, allEntries = true)
     public void deleteTrip(String id) {
         repository.deleteById(id);
     }
@@ -92,5 +92,17 @@ public class VanRentalTripService {
         trip.setNoOfBags((int) Math.floor((double) trip.getWayment() / 78));
         trip.setTotalRent(Math.round((trip.getNoOfBags() * trip.getRent()) + trip.getMiscSpending()));
         trip.setVanNumber(trip.getVanNumber().toUpperCase());
+    }
+
+    @Cacheable(value = "vanNumbers")
+    public List<String> getVanNumbers() {
+        System.out.println("Hitting the DB for Van numbers");
+        return repository.findDistinctVanNumbers();
+    }
+
+    public Integer calculateRate(String pickup, String dropOff) {
+        List<Integer> rates = repository.findRentByPickupAndDropOff(pickup,dropOff);
+        return rates!= null && !rates.isEmpty() ? rates.get(0):0;
+
     }
 }
