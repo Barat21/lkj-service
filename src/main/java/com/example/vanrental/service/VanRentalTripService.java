@@ -11,6 +11,7 @@ import java.time.LocalDate;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 @Transactional
@@ -67,16 +68,14 @@ public class VanRentalTripService {
 
     public List<VanRentalTrip> searchTrips(String query) {
         // Simple search against vanNumber, pickupLocation, dropoffLocation
-        List<VanRentalTrip> trips = repository.findAll().stream()
+        List<VanRentalTrip> searchTrips = repository.findAll().stream()
                 .filter(t -> {
                     String lower = query.toLowerCase();
                     return (t.getVanNumber() != null && t.getVanNumber().toLowerCase().contains(lower))
                             || (t.getPickupLocation() != null && t.getPickupLocation().toLowerCase().contains(lower))
                             || (t.getDropoffLocation() != null && t.getDropoffLocation().toLowerCase().contains(lower));
-                })
-                .toList();
-        trips.sort(Comparator.comparing(VanRentalTrip::getDate));
-        return trips;
+                }).sorted(Comparator.comparing(VanRentalTrip::getDate)).collect(Collectors.toList());
+        return searchTrips;
     }
 
     public List<VanRentalTrip> searchByDateAndVan(LocalDate start, LocalDate end, String vanNumber) {
