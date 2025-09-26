@@ -29,7 +29,7 @@ public class VanRentalTripService {
         List<VanRentalTrip> trips = repository.findAll();
 
         // Sort ascending by date
-        trips.sort(Comparator.comparing(VanRentalTrip::getDate));
+        trips.sort(Comparator.comparing(VanRentalTrip::getDate).reversed());
 
         // For descending order:
         // trips.sort(Comparator.comparing(VanRentalTrip::getDate).reversed());
@@ -74,7 +74,7 @@ public class VanRentalTripService {
                     return (t.getVanNumber() != null && t.getVanNumber().toLowerCase().contains(lower))
                             || (t.getPickupLocation() != null && t.getPickupLocation().toLowerCase().contains(lower))
                             || (t.getDropoffLocation() != null && t.getDropoffLocation().toLowerCase().contains(lower));
-                }).sorted(Comparator.comparing(VanRentalTrip::getDate)).collect(Collectors.toList());
+                }).sorted(Comparator.comparing(VanRentalTrip::getDate).reversed()).collect(Collectors.toList());
         return searchTrips;
     }
 
