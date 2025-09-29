@@ -27,4 +27,5 @@ public class VanRentalTrip {
     private double rent;
     private double miscSpending;
     private double totalRent;
+    private boolean paid;
 }

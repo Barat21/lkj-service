@@ -1,6 +1,8 @@
 package com.example.vanrental.service;
 
+import com.example.vanrental.model.PaymentRecord;
 import com.example.vanrental.model.VanRentalTrip;
+import com.example.vanrental.repository.PaymentRecordRepository;
 import com.example.vanrental.repository.VanRentalTripRepository;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
@@ -18,9 +20,13 @@ import java.util.stream.Collectors;
 public class VanRentalTripService {
 
     private final VanRentalTripRepository repository;
+    private final PaymentRecordRepository paymentRecordRepository;
 
-    public VanRentalTripService(VanRentalTripRepository repository) {
+
+    public VanRentalTripService(VanRentalTripRepository repository,
+                                PaymentRecordRepository paymentRecordRepository) {
         this.repository = repository;
+        this.paymentRecordRepository = paymentRecordRepository;
     }
 
     @Cacheable(value = "trips")
@@ -66,7 +72,7 @@ public class VanRentalTripService {
         repository.deleteById(id);
     }
 
-    public List<VanRentalTrip> searchTrips(String query) {
+    public List<VanRentalTrip> searchTrips(String query, String paymentStatus) {
         // Simple search against vanNumber, pickupLocation, dropoffLocation
         List<VanRentalTrip> searchTrips = repository.findAll().stream()
                 .filter(t -> {
@@ -75,16 +81,43 @@ public class VanRentalTripService {
                             || (t.getPickupLocation() != null && t.getPickupLocation().toLowerCase().contains(lower))
                             || (t.getDropoffLocation() != null && t.getDropoffLocation().toLowerCase().contains(lower));
                 }).sorted(Comparator.comparing(VanRentalTrip::getDate).reversed()).collect(Collectors.toList());
-        return searchTrips;
+
+        // no filter
+        // fallback: no filter if unknown
+        return searchTrips.stream()
+                .filter(trip -> {
+                    if ("ALL".equalsIgnoreCase(paymentStatus)) {
+                        return true; // no filter
+                    } else if ("UNPAID".equalsIgnoreCase(paymentStatus)) {
+                        return !trip.isPaid();
+                    } else if ("PAID".equalsIgnoreCase(paymentStatus)) {
+                        return trip.isPaid();
+                    } else {
+                        return true; // fallback: no filter if unknown
+                    }
+                })
+                .collect(Collectors.toList());
     }
 
-    public List<VanRentalTrip> searchByDateAndVan(LocalDate start, LocalDate end, String vanNumber) {
+    public List<VanRentalTrip> searchByDateAndVan(LocalDate start, LocalDate end, String vanNumber, String paymentStatus) {
         if (vanNumber == null || vanNumber.isBlank()) {
             return repository.findByDateBetween(start, end);
         }
         List<VanRentalTrip> trips = repository.findByDateBetweenAndVanNumberContainingIgnoreCase(start, end, vanNumber);
         trips.sort(Comparator.comparing(VanRentalTrip::getDate));
-        return trips;
+        return trips.stream()
+                .filter(trip -> {
+                    if ("ALL".equalsIgnoreCase(paymentStatus)) {
+                        return true; // no filter
+                    } else if ("UNPAID".equalsIgnoreCase(paymentStatus)) {
+                        return !trip.isPaid();
+                    } else if ("PAID".equalsIgnoreCase(paymentStatus)) {
+                        return trip.isPaid();
+                    } else {
+                        return true; // fallback: no filter if unknown
+                    }
+                })
+                .collect(Collectors.toList());
     }
 
     private void recalc(VanRentalTrip trip) {
@@ -103,5 +136,17 @@ public class VanRentalTripService {
         List<Integer> rates = repository.findRentByPickupAndDropOff(pickup,dropOff);
         return rates!= null && !rates.isEmpty() ? rates.get(0):0;
 
+    }
+
+    @CacheEvict(value = {"trips","vanNumbers"}, allEntries = true)
+    public void recordPayment(LocalDate fromDate, LocalDate toDate, String vanNumber, LocalDate transactionDate, int amount) {
+        int numberOfRecords = repository.updatePaymentRecord(fromDate,toDate,vanNumber);
+        System.out.println(numberOfRecords);
+        PaymentRecord paymentRecord = new PaymentRecord();
+        paymentRecord.setVanNumber(vanNumber);
+        paymentRecord.setFromDate(fromDate);
+        paymentRecord.setToDate(toDate);
+        paymentRecord.setAmount(amount);
+        paymentRecordRepository.save(paymentRecord);
     }
 }

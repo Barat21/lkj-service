@@ -1,7 +1,11 @@
 package com.example.vanrental.controller;
 
+import com.example.vanrental.model.PaymentRecord;
 import com.example.vanrental.model.VanRentalTrip;
+import com.example.vanrental.repository.PaymentRecordRepository;
 import com.example.vanrental.service.VanRentalTripService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -16,13 +20,28 @@ public class VanRentalTripController {
 
     private final VanRentalTripService service;
 
-    public VanRentalTripController(VanRentalTripService service) {
+    @Autowired
+    private final PaymentRecordRepository paymentRecordRepository;
+
+    public VanRentalTripController(VanRentalTripService service, PaymentRecordRepository paymentRecordRepository) {
         this.service = service;
+        this.paymentRecordRepository = paymentRecordRepository;
     }
 
     @GetMapping
     public List<VanRentalTrip> getAllTrips() {
         return service.getAllTrips();
+    }
+
+    @GetMapping("/getPaymentRecords")
+    public List<PaymentRecord> getAllPaymentRecords() {
+        return paymentRecordRepository.findAll();
+    }
+
+    @DeleteMapping("/payment/{id}")
+    public ResponseEntity<Void> deletePaymentRecord(@PathVariable String id) {
+        paymentRecordRepository.deleteById(Long.valueOf(id));
+        return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/getVanNumbers")
@@ -48,20 +67,23 @@ public class VanRentalTripController {
     }
 
     @GetMapping("/search")
-    public List<VanRentalTrip> searchTrips(@RequestParam String query) {
-        return service.searchTrips(query);
+    public List<VanRentalTrip> searchTrips(@RequestParam String query,
+                                           @RequestParam(required = false) String paymentStatus) {
+        return service.searchTrips(query,paymentStatus);
     }
 
     @GetMapping("/filter")
     public List<VanRentalTrip> searchByDateAndVan(
             @RequestParam String startDate,
             @RequestParam String endDate,
-            @RequestParam(required = false) String vanNumber
+            @RequestParam(required = false) String vanNumber,
+            @RequestParam(required = false) String paymentStatus
     ) {
         return service.searchByDateAndVan(
                 LocalDate.parse(startDate),
                 LocalDate.parse(endDate),
-                vanNumber
+                vanNumber,
+                paymentStatus
         );
     }
     @Cacheable(
@@ -73,5 +95,19 @@ public class VanRentalTripController {
                                            @RequestParam String dropOff) {
         Integer rate = service.calculateRate(pickup, dropOff);
         return ResponseEntity.ok(rate);
+    }
+
+    @GetMapping("/recordPayment")
+    public ResponseEntity<Integer> recordPayment(@RequestParam String startDate,
+                                                 @RequestParam String endDate,
+                                                 @RequestParam String vanNumber,
+                                                 @RequestParam String transactionDate,
+                                                 @RequestParam int amount) {
+        service.recordPayment(LocalDate.parse(startDate),
+                LocalDate.parse(endDate),
+                vanNumber,
+                LocalDate.parse(transactionDate),
+                amount);
+        return ResponseEntity.noContent().build();
     }
 }
